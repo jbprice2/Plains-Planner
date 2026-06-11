@@ -4,11 +4,7 @@ A personal tracker for Auburn University clubs and events — a lightweight dire
 
 ## Live app
 
-Once GitHub Pages is enabled for this repo, your app will be available at:
-
-`https://yourusername.github.io/plains-planner/`
-
-(Replace `yourusername` with your actual GitHub username, and update this link once you know it.)
+[https://jbprice2.github.io/Plains-Planner/](https://jbprice2.github.io/Plains-Planner/)
 
 ## Features
 
