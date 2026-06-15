@@ -564,6 +564,26 @@
   }
   .modal-actions .left{ margin-right:auto; }
 
+  .hero-actions{
+    display:flex;
+    gap:0.4rem;
+    align-items:center;
+  }
+  .hero-btn{
+    background:transparent;
+    border:1px solid rgba(250,246,238,0.35);
+    color:var(--cream);
+    padding:0.4rem 0.75rem;
+    border-radius:999px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.72rem;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    transition:border-color 0.15s, background 0.15s;
+    white-space:nowrap;
+  }
+  .hero-btn:hover{ border-color:var(--orange-light); background:rgba(250,246,238,0.08); }
+
   @media (max-width:560px){
     .hero-top{ align-items:flex-start; }
     .toolbar{ margin-left:1rem; margin-right:1rem; }
@@ -581,13 +601,19 @@
           <span class="brand-eyebrow">AUBURN, ALABAMA</span>
           <h1>The Plains Planner</h1>
         </div>
-        <nav class="tabs" id="tabs">
-          <button class="tab active" data-tab="week">This Week</button>
-          <button class="tab" data-tab="free">Free Time</button>
-          <button class="tab" data-tab="clubs">Clubs</button>
-          <button class="tab" data-tab="calendar">Calendar</button>
-          <button class="tab" data-tab="schedule">Schedule</button>
-        </nav>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.5rem;">
+          <nav class="tabs" id="tabs">
+            <button class="tab active" data-tab="week">This Week</button>
+            <button class="tab" data-tab="free">Free Time</button>
+            <button class="tab" data-tab="clubs">Clubs</button>
+            <button class="tab" data-tab="calendar">Calendar</button>
+            <button class="tab" data-tab="schedule">Schedule</button>
+          </nav>
+          <div class="hero-actions">
+            <button class="hero-btn" id="exportBtn">↓ Export backup</button>
+            <button class="hero-btn" id="importBtn">↑ Restore backup</button>
+          </div>
+        </div>
       </div>
       <div class="ticker">
         <div class="ticker-label">On Deck</div>
@@ -1728,6 +1754,54 @@
   }
 
   // ---------------------------------------------------------------
+  // Export / Import
+  // ---------------------------------------------------------------
+  function exportData(){
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `plains-planner-backup-${todayIso()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importData(){
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.addEventListener('change', async () => {
+      const file = input.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+        if (!Array.isArray(parsed.clubs) || !Array.isArray(parsed.events) || !Array.isArray(parsed.recurringEvents)){
+          alert("That doesn't look like a Plains Planner backup file.");
+          return;
+        }
+        openConfirmModal(
+          'Restore backup?',
+          `This will replace all your current data (${data.clubs.length} club${data.clubs.length !== 1 ? 's' : ''}, ${data.events.length} event${data.events.length !== 1 ? 's' : ''}, ${data.recurringEvents.length} recurring item${data.recurringEvents.length !== 1 ? 's' : ''}) with the backup. This cannot be undone.`,
+          async () => {
+            data = {
+              clubs: parsed.clubs,
+              events: parsed.events,
+              recurringEvents: parsed.recurringEvents
+            };
+            await persist();
+            render();
+          }
+        );
+      } catch(e){
+        alert('Could not read that file. Make sure it\'s a valid Plains Planner backup.');
+      }
+    });
+    input.click();
+  }
+
+  // ---------------------------------------------------------------
   // Tabs
   // ---------------------------------------------------------------
   document.getElementById('tabs').addEventListener('click', e => {
@@ -1743,6 +1817,9 @@
   // ---------------------------------------------------------------
   // Init
   // ---------------------------------------------------------------
+  document.getElementById('exportBtn').addEventListener('click', exportData);
+  document.getElementById('importBtn').addEventListener('click', importData);
+
   (async function init(){
     await loadData();
     ui.selectedDay = todayIso();
