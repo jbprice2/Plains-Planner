@@ -584,6 +584,118 @@
   }
   .hero-btn:hover{ border-color:var(--orange-light); background:rgba(250,246,238,0.08); }
 
+  /* ---------- Portfolio ---------- */
+  .portfolio-stats{
+    display:flex;
+    gap:1rem;
+    flex-wrap:wrap;
+    margin-bottom:1.25rem;
+  }
+  .stat-chip{
+    background:var(--paper);
+    border:1px solid var(--paper-edge);
+    border-radius:10px;
+    padding:0.65rem 1rem;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    min-width:90px;
+  }
+  .stat-chip .stat-num{
+    font-family:'Anton', sans-serif;
+    font-size:1.6rem;
+    line-height:1;
+    color:var(--navy);
+  }
+  .stat-chip .stat-label{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.65rem;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-top:0.2rem;
+  }
+  .portfolio-section-title{
+    font-size:0.75rem;
+    font-family:'JetBrains Mono', monospace;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin:0 0 0.6rem;
+    padding-bottom:0.35rem;
+    border-bottom:1px solid var(--line);
+  }
+  .activity-row{
+    background:var(--paper);
+    border:1px solid var(--paper-edge);
+    border-radius:10px;
+    padding:0.85rem 1rem;
+    margin-bottom:0.6rem;
+    display:flex;
+    gap:0.75rem;
+    align-items:flex-start;
+  }
+  .activity-hours{
+    flex:none;
+    background:var(--navy);
+    color:var(--cream);
+    border-radius:8px;
+    padding:0.3rem 0.55rem;
+    font-family:'Anton', sans-serif;
+    font-size:1rem;
+    line-height:1.2;
+    text-align:center;
+    min-width:3rem;
+  }
+  .activity-hours span{
+    display:block;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.55rem;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--orange-light);
+  }
+  .activity-body{ flex:1; min-width:0; }
+  .activity-title{ font-weight:700; font-size:0.95rem; }
+  .activity-meta{ font-family:'JetBrains Mono', monospace; font-size:0.78rem; color:var(--ink-soft); margin-top:0.15rem; }
+  .activity-desc{ font-size:0.88rem; margin-top:0.3rem; color:var(--ink); }
+  .act-cat-tag{
+    display:inline-block;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.65rem;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    padding:0.15rem 0.45rem;
+    border-radius:4px;
+    margin-right:0.4rem;
+  }
+  .org-portfolio-card{
+    background:var(--paper);
+    border:1px solid var(--paper-edge);
+    border-radius:12px;
+    padding:1rem 1.1rem;
+    margin-bottom:0.75rem;
+    display:flex;
+    gap:1rem;
+    align-items:flex-start;
+  }
+  .org-portfolio-accent{
+    width:5px;
+    border-radius:3px;
+    flex:none;
+    align-self:stretch;
+    min-height:40px;
+  }
+  .org-portfolio-body{ flex:1; min-width:0; }
+  .org-portfolio-role{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.78rem;
+    color:var(--orange);
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+  }
+
   @media (max-width:560px){
     .hero-top{ align-items:flex-start; }
     .toolbar{ margin-left:1rem; margin-right:1rem; }
@@ -608,6 +720,7 @@
             <button class="tab" data-tab="clubs">Clubs</button>
             <button class="tab" data-tab="calendar">Calendar</button>
             <button class="tab" data-tab="schedule">Schedule</button>
+            <button class="tab" data-tab="portfolio">Portfolio</button>
           </nav>
           <div class="hero-actions">
             <button class="hero-btn" id="exportBtn">↓ Export backup</button>
@@ -666,6 +779,26 @@
     'Other': '#8a8275'
   };
 
+  const ACTIVITY_CATEGORIES = [
+    'Shadowing / Clinical',
+    'Volunteering',
+    'Research',
+    'Leadership',
+    'Professional Development',
+    'Community Service',
+    'Other'
+  ];
+
+  const ACTIVITY_CATEGORY_COLORS = {
+    'Shadowing / Clinical': '#5b7c99',
+    'Volunteering':         '#3f7a6b',
+    'Research':             '#7d6b9e',
+    'Leadership':           '#dd550c',
+    'Professional Development': '#0b2341',
+    'Community Service':    '#5e8c61',
+    'Other':                '#8a8275'
+  };
+
   // A small curated palette students can pick from to give each club its
   // own accent color across cards, calendar dots, and the weekly digest.
   const COLOR_PALETTE = [
@@ -706,7 +839,8 @@
     return {
       clubs: [],
       events: [],
-      recurringEvents: []
+      recurringEvents: [],
+      activities: []
     };
   }
 
@@ -721,6 +855,7 @@
         if (!Array.isArray(data.recurringEvents)) data.recurringEvents = [];
         if (!Array.isArray(data.clubs)) data.clubs = [];
         if (!Array.isArray(data.events)) data.events = [];
+        if (!Array.isArray(data.activities)) data.activities = [];
         return;
       }
     }catch(e){
@@ -931,6 +1066,7 @@
     else if (ui.tab === 'free') renderFreeTime();
     else if (ui.tab === 'clubs') renderClubs();
     else if (ui.tab === 'schedule') renderSchedule();
+    else if (ui.tab === 'portfolio') renderPortfolio();
     else renderCalendar();
   }
 
@@ -1466,7 +1602,7 @@
 
   function openClubModal(existing){
     const isEdit = !!existing;
-    const club = existing || { id: uid(), name:'', category:CATEGORIES[CATEGORIES.length-1], meetingInfo:'', link:'', notes:'', following:false, color:'' };
+    const club = existing || { id: uid(), name:'', category:CATEGORIES[CATEGORIES.length-1], meetingInfo:'', link:'', notes:'', following:false, color:'', role:'', memberSince:'', orgDescription:'' };
 
     modal.innerHTML = `
       <h2>${isEdit ? 'Edit club' : 'Add club'}</h2>
@@ -1486,6 +1622,20 @@
           <button type="button" class="color-swatch auto ${!club.color ? 'active' : ''}" data-color="" title="Use category color">Auto</button>
           ${COLOR_PALETTE.map(c => `<button type="button" class="color-swatch ${club.color===c?'active':''}" data-color="${c}" style="background:${c}" title="${c}"></button>`).join('')}
         </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="f-role">Your role</label>
+          <input id="f-role" type="text" value="${escapeHtml(club.role||'')}" placeholder="e.g. Member, VP of Finance">
+        </div>
+        <div class="field">
+          <label for="f-member-since">Member since</label>
+          <input id="f-member-since" type="date" value="${club.memberSince||''}">
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-org-desc">What you do here</label>
+        <textarea id="f-org-desc" placeholder="Brief description of your involvement (shows on Portfolio)">${escapeHtml(club.orgDescription||'')}</textarea>
       </div>
       <div class="field">
         <label for="f-meeting">Meeting info</label>
@@ -1529,6 +1679,9 @@
       club.name = name;
       club.category = document.getElementById('f-category').value;
       club.color = activeSwatch ? activeSwatch.dataset.color : '';
+      club.role = document.getElementById('f-role').value.trim();
+      club.memberSince = document.getElementById('f-member-since').value;
+      club.orgDescription = document.getElementById('f-org-desc').value.trim();
       club.meetingInfo = document.getElementById('f-meeting').value.trim();
       club.link = document.getElementById('f-link').value.trim();
       club.notes = document.getElementById('f-notes').value.trim();
@@ -1751,6 +1904,315 @@
       onConfirm();
     });
     overlay.classList.add('open');
+  }
+
+  // ---------------------------------------------------------------
+  // Portfolio
+  // ---------------------------------------------------------------
+  function totalHoursForClub(clubId){
+    return data.activities
+      .filter(a => a.clubId === clubId)
+      .reduce((sum, a) => sum + (parseFloat(a.hours) || 0), 0);
+  }
+
+  function renderPortfolio(){
+    const main = document.getElementById('main');
+
+    const totalHours = data.activities.reduce((s, a) => s + (parseFloat(a.hours) || 0), 0);
+    const orgsWithRole = data.clubs.filter(c => c.role || c.memberSince || c.orgDescription);
+
+    main.innerHTML = `
+      <div class="toolbar">
+        <div style="flex:1;">
+          <h3 style="font-size:1rem; margin-bottom:0.2rem;">Involvement Portfolio</h3>
+          <p style="margin:0; color:var(--ink-soft); font-size:0.85rem;">Track your roles, hours, and experiences across every org.</p>
+        </div>
+        <button class="btn-secondary" id="exportPortfolioBtn">↓ Export as text</button>
+        <button class="btn-primary" id="logActivityBtn">+ Log activity</button>
+      </div>
+
+      <div class="portfolio-stats">
+        <div class="stat-chip">
+          <span class="stat-num">${data.clubs.length}</span>
+          <span class="stat-label">Orgs</span>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-num">${data.activities.length}</span>
+          <span class="stat-label">Activities</span>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-num">${totalHours % 1 === 0 ? totalHours : totalHours.toFixed(1)}</span>
+          <span class="stat-label">Total hrs</span>
+        </div>
+      </div>
+
+      <div style="margin-bottom:1.5rem;">
+        <p class="portfolio-section-title">Organizations</p>
+        <div id="portfolioOrgs"></div>
+      </div>
+
+      <div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.6rem;">
+          <p class="portfolio-section-title" style="margin:0; border:none;">Activity Log</p>
+          <select id="activityClubFilter" style="font-size:0.8rem; padding:0.3rem 0.5rem; border:1px solid var(--line); border-radius:6px; background:#fff;">
+            <option value="all">All orgs</option>
+            <option value="none">No org linked</option>
+            ${data.clubs.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
+          </select>
+        </div>
+        <div id="activityLog"></div>
+      </div>
+    `;
+
+    document.getElementById('logActivityBtn').addEventListener('click', () => openActivityModal(null));
+    document.getElementById('exportPortfolioBtn').addEventListener('click', exportPortfolio);
+    document.getElementById('activityClubFilter').addEventListener('change', e => {
+      renderActivityLog(e.target.value);
+    });
+
+    renderPortfolioOrgs();
+    renderActivityLog('all');
+  }
+
+  function renderPortfolioOrgs(){
+    const container = document.getElementById('portfolioOrgs');
+    if (!container) return;
+    const clubs = data.clubs.slice().sort((a,b) => a.name.localeCompare(b.name));
+
+    if (clubs.length === 0){
+      container.innerHTML = `<p style="color:var(--ink-soft); font-size:0.9rem;">No clubs added yet. Add clubs from the Clubs tab and fill in your role to see them here.</p>`;
+      return;
+    }
+
+    container.innerHTML = clubs.map(c => {
+      const color = getClubColor(c.id);
+      const hrs = totalHoursForClub(c.id);
+      const since = c.memberSince ? formatDateLabel(c.memberSince) : null;
+      return `
+        <div class="org-portfolio-card">
+          <div class="org-portfolio-accent" style="background:${color};"></div>
+          <div class="org-portfolio-body">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem; flex-wrap:wrap;">
+              <div>
+                <h3 style="font-size:1.05rem;">${escapeHtml(c.name)}</h3>
+                ${c.role ? `<div class="org-portfolio-role">${escapeHtml(c.role)}</div>` : ''}
+                ${since ? `<div class="activity-meta">Since ${since}</div>` : ''}
+              </div>
+              ${hrs > 0 ? `<div class="stat-chip" style="min-width:unset; padding:0.4rem 0.75rem;"><span class="stat-num" style="font-size:1.1rem;">${hrs % 1 === 0 ? hrs : hrs.toFixed(1)}</span><span class="stat-label">hrs logged</span></div>` : ''}
+            </div>
+            ${c.orgDescription ? `<p style="margin:0.4rem 0 0; font-size:0.88rem;">${escapeHtml(c.orgDescription)}</p>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderActivityLog(clubFilter){
+    const container = document.getElementById('activityLog');
+    if (!container) return;
+
+    let activities = data.activities.slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
+
+    if (clubFilter === 'none') activities = activities.filter(a => !a.clubId);
+    else if (clubFilter !== 'all') activities = activities.filter(a => a.clubId === clubFilter);
+
+    if (activities.length === 0){
+      container.innerHTML = `
+        <div class="empty" style="margin-top:0;">
+          <h3>No activities logged yet</h3>
+          <p>Use "+ Log activity" to record hours, shadowing, volunteer work, research, and more.</p>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = activities.map(a => {
+      const club = a.clubId ? clubById(a.clubId) : null;
+      const catColor = ACTIVITY_CATEGORY_COLORS[a.category] || ACTIVITY_CATEGORY_COLORS['Other'];
+      return `
+        <div class="activity-row" data-id="${a.id}">
+          <div class="activity-hours">
+            ${parseFloat(a.hours) || 0}
+            <span>hrs</span>
+          </div>
+          <div class="activity-body">
+            <div class="activity-title">
+              <span class="act-cat-tag" style="background:${catColor}20; color:${catColor};">${escapeHtml(a.category)}</span>
+              ${escapeHtml(a.title)}
+            </div>
+            <div class="activity-meta">
+              ${a.date ? formatDateLabel(a.date) : ''}${a.with ? ' · ' + escapeHtml(a.with) : ''}${club ? ' · ' + escapeHtml(club.name) : ''}
+            </div>
+            ${a.description ? `<div class="activity-desc">${escapeHtml(a.description)}</div>` : ''}
+          </div>
+          <div class="event-actions">
+            <button class="btn-text" data-action="edit">Edit</button>
+            <button class="btn-text danger" data-action="delete">Delete</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    container.querySelectorAll('.activity-row').forEach(row => {
+      const id = row.dataset.id;
+      row.querySelector('[data-action="edit"]').addEventListener('click', () => {
+        openActivityModal(data.activities.find(a => a.id === id));
+      });
+      row.querySelector('[data-action="delete"]').addEventListener('click', () => {
+        const act = data.activities.find(a => a.id === id);
+        openConfirmModal(`Delete "${act.title}"?`, 'This cannot be undone.', () => {
+          data.activities = data.activities.filter(a => a.id !== id);
+          persist();
+          renderPortfolio();
+        });
+      });
+    });
+  }
+
+  function openActivityModal(existing){
+    const isEdit = !!existing;
+    const act = existing || {
+      id: uid(), title:'', category: ACTIVITY_CATEGORIES[0],
+      date: todayIso(), hours:'', with:'', clubId:null, description:''
+    };
+
+    const clubOptions = ['<option value="">No org linked</option>']
+      .concat(data.clubs.map(c => `<option value="${c.id}" ${c.id===act.clubId?'selected':''}>${escapeHtml(c.name)}</option>`))
+      .join('');
+
+    const catOptions = ACTIVITY_CATEGORIES
+      .map(c => `<option value="${c}" ${c===act.category?'selected':''}>${c}</option>`)
+      .join('');
+
+    modal.innerHTML = `
+      <h2>${isEdit ? 'Edit activity' : 'Log activity'}</h2>
+      <div class="field">
+        <label for="a-title">Title</label>
+        <input id="a-title" type="text" value="${escapeHtml(act.title)}" placeholder="e.g. Shadowing Dr. Patel, Habitat build day">
+      </div>
+      <div class="field">
+        <label for="a-category">Category</label>
+        <select id="a-category">${catOptions}</select>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="a-date">Date</label>
+          <input id="a-date" type="date" value="${act.date||''}">
+        </div>
+        <div class="field">
+          <label for="a-hours">Hours</label>
+          <input id="a-hours" type="number" min="0" step="0.5" value="${act.hours||''}" placeholder="e.g. 3.5">
+        </div>
+      </div>
+      <div class="field">
+        <label for="a-with">With / At</label>
+        <input id="a-with" type="text" value="${escapeHtml(act.with||'')}" placeholder="e.g. Dr. Smith · UAB Hospital, Food Bank of Alabama">
+      </div>
+      <div class="field">
+        <label for="a-club">Linked org</label>
+        <select id="a-club">${clubOptions}</select>
+      </div>
+      <div class="field">
+        <label for="a-desc">Description</label>
+        <textarea id="a-desc" placeholder="What did you do? What did you learn?">${escapeHtml(act.description||'')}</textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="cancelBtn">Cancel</button>
+        <button class="btn-primary" id="saveBtn">${isEdit ? 'Save changes' : 'Log activity'}</button>
+      </div>
+    `;
+
+    document.getElementById('cancelBtn').addEventListener('click', closeModal);
+    document.getElementById('saveBtn').addEventListener('click', () => {
+      const title = document.getElementById('a-title').value.trim();
+      if (!title){ document.getElementById('a-title').focus(); return; }
+
+      act.title       = title;
+      act.category    = document.getElementById('a-category').value;
+      act.date        = document.getElementById('a-date').value;
+      act.hours       = document.getElementById('a-hours').value;
+      act.with        = document.getElementById('a-with').value.trim();
+      act.clubId      = document.getElementById('a-club').value || null;
+      act.description = document.getElementById('a-desc').value.trim();
+
+      if (!isEdit) data.activities.push(act);
+      persist();
+      closeModal();
+      if (ui.tab === 'portfolio') renderPortfolio();
+    });
+
+    overlay.classList.add('open');
+    document.getElementById('a-title').focus();
+  }
+
+  function exportPortfolio(){
+    const lines = [];
+    const now = new Date().toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' });
+
+    lines.push('THE PLAINS PLANNER — INVOLVEMENT PORTFOLIO');
+    lines.push(`Auburn University · Exported ${now}`);
+    lines.push('');
+
+    const totalHours = data.activities.reduce((s, a) => s + (parseFloat(a.hours) || 0), 0);
+    lines.push(`${data.clubs.length} organization${data.clubs.length !== 1 ? 's' : ''} · ${data.activities.length} activities · ${totalHours % 1 === 0 ? totalHours : totalHours.toFixed(1)} total hours`);
+    lines.push('');
+    lines.push('═'.repeat(52));
+
+    if (data.clubs.length > 0){
+      lines.push('');
+      lines.push('ORGANIZATIONS');
+      lines.push('─'.repeat(52));
+      data.clubs.slice().sort((a,b) => a.name.localeCompare(b.name)).forEach(c => {
+        lines.push('');
+        lines.push(c.name.toUpperCase());
+        if (c.role) lines.push(`  Role: ${c.role}`);
+        if (c.memberSince) lines.push(`  Since: ${formatDateLabel(c.memberSince)}`);
+        const hrs = totalHoursForClub(c.id);
+        if (hrs > 0) lines.push(`  Hours logged: ${hrs % 1 === 0 ? hrs : hrs.toFixed(1)}`);
+        if (c.orgDescription) lines.push(`  ${c.orgDescription}`);
+      });
+    }
+
+    if (data.activities.length > 0){
+      lines.push('');
+      lines.push('');
+      lines.push('ACTIVITY LOG');
+      lines.push('─'.repeat(52));
+
+      const byCategory = {};
+      data.activities.forEach(a => {
+        if (!byCategory[a.category]) byCategory[a.category] = [];
+        byCategory[a.category].push(a);
+      });
+
+      ACTIVITY_CATEGORIES.forEach(cat => {
+        if (!byCategory[cat] || byCategory[cat].length === 0) return;
+        lines.push('');
+        lines.push(cat.toUpperCase());
+        byCategory[cat]
+          .slice()
+          .sort((a,b) => (b.date||'').localeCompare(a.date||''))
+          .forEach(a => {
+            const club = a.clubId ? clubById(a.clubId) : null;
+            lines.push('');
+            lines.push(`  ${a.title}${a.hours ? ' (' + a.hours + ' hrs)' : ''}`);
+            const meta = [a.date ? formatDateLabel(a.date) : null, a.with || null, club ? club.name : null].filter(Boolean);
+            if (meta.length) lines.push(`  ${meta.join(' · ')}`);
+            if (a.description) lines.push(`  "${a.description}"`);
+          });
+      });
+    }
+
+    lines.push('');
+    lines.push('─'.repeat(52));
+    lines.push('Generated by The Plains Planner');
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `plains-planner-portfolio-${todayIso()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   // ---------------------------------------------------------------
