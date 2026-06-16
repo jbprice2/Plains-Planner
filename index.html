@@ -390,13 +390,26 @@
 
 <!-- Nav -->
 <nav>
-  <span class="nav-brand">The Plains <span>Planner</span></span>
+  <div style="display:flex; align-items:center; gap:0.75rem;">
+    <span class="nav-brand">The Plains <span>Planner</span></span>
+    <span style="
+      font-family:'JetBrains Mono',monospace;
+      font-size:0.62rem;
+      letter-spacing:0.14em;
+      text-transform:uppercase;
+      color:var(--navy);
+      background:var(--orange);
+      padding:0.2rem 0.5rem;
+      border-radius:4px;
+      font-weight:700;
+    ">War Eagle</span>
+  </div>
   <a href="app.html" class="nav-cta">Open App →</a>
 </nav>
 
 <!-- Hero -->
 <section class="hero">
-  <span class="hero-eyebrow">Auburn University · Built by a student, for students</span>
+  <span class="hero-eyebrow">War Eagle · Auburn, Alabama · Built by a student, for students</span>
   <h1>The planner Auburn<br><em>forgot to build.</em></h1>
   <p class="hero-sub">Track your clubs, classes, and involvement hours — all in one place. Free Time finder, portfolio export, and more. No account needed.</p>
   <div class="hero-actions">
@@ -518,6 +531,54 @@
   </div>
 </section>
 
+<!-- War Eagle spirit strip -->
+<div style="
+  background:var(--navy);
+  padding:3rem 1.5rem;
+  text-align:center;
+  overflow:hidden;
+  position:relative;
+">
+  <div style="
+    font-family:'Anton',sans-serif;
+    font-size:clamp(3.5rem,12vw,7rem);
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:rgba(250,246,238,0.06);
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
+    user-select:none;
+  ">WAR EAGLE</div>
+  <p style="
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.72rem;
+    letter-spacing:0.22em;
+    text-transform:uppercase;
+    color:var(--orange-light);
+    margin-bottom:0.6rem;
+  ">Auburn, Alabama</p>
+  <div style="
+    font-family:'Anton',sans-serif;
+    font-size:clamp(2.2rem,6vw,4rem);
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--cream);
+    line-height:1;
+    position:relative;
+  ">War <span style="color:var(--orange);">Eagle</span></div>
+  <p style="
+    color:rgba(250,246,238,0.55);
+    font-size:0.88rem;
+    margin-top:0.75rem;
+    font-style:italic;
+    position:relative;
+  ">Proudly built on the Plains, for everyone on the Plains.</p>
+</div>
+
 <!-- CTA banner -->
 <section class="cta-banner">
   <h2>Ready to get organized?</h2>
@@ -528,6 +589,7 @@
 <!-- Footer -->
 <footer>
   <div>Built by an Auburn student · War Eagle</div>
+  <div style="margin-top:0.4rem; opacity:0.6;">Independently built — not affiliated with Auburn University</div>
   <div class="footer-share">
     <button id="shareBtn">Share this app</button>
     <span id="shareFeedback" style="display:none;">Link copied!</span>
