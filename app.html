@@ -698,6 +698,81 @@
     letter-spacing:0.05em;
   }
 
+  /* ---------- Activity Groups ---------- */
+  .activity-group{
+    background:var(--paper);
+    border:1px solid var(--paper-edge);
+    border-radius:10px;
+    margin-bottom:0.6rem;
+    overflow:hidden;
+  }
+  .activity-group-header{
+    display:flex;
+    align-items:center;
+    gap:0.75rem;
+    padding:0.85rem 1rem;
+    cursor:pointer;
+    list-style:none;
+    user-select:none;
+  }
+  .activity-group-header::-webkit-details-marker{ display:none; }
+  .activity-group-header::marker{ display:none; }
+  .activity-group[open] .activity-group-header{
+    border-bottom:1px solid var(--paper-edge);
+  }
+  .activity-group-chevron{
+    color:var(--ink-soft);
+    font-size:0.75rem;
+    flex:none;
+    transition:transform 0.15s;
+  }
+  .activity-group[open] .activity-group-chevron{
+    transform:rotate(180deg);
+  }
+  .activity-group-body{ padding:0 1rem; }
+  .activity-session-row{
+    display:flex;
+    align-items:flex-start;
+    gap:0.75rem;
+    padding:0.6rem 0;
+    border-bottom:1px solid var(--paper-edge);
+  }
+  .activity-session-row:last-child{ border-bottom:none; }
+  .activity-session-date{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.82rem;
+    font-weight:700;
+    color:var(--ink);
+    min-width:5rem;
+    flex:none;
+  }
+  .activity-session-hrs{
+    font-family:'Anton', sans-serif;
+    font-size:0.9rem;
+    color:var(--navy);
+    flex:none;
+  }
+  .activity-group-total{
+    flex:none;
+    background:var(--navy);
+    color:var(--cream);
+    border-radius:8px;
+    padding:0.3rem 0.55rem;
+    font-family:'Anton', sans-serif;
+    font-size:1rem;
+    line-height:1.2;
+    text-align:center;
+    min-width:3rem;
+  }
+  .activity-group-total span{
+    display:block;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.55rem;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--orange-light);
+  }
+
   /* ---------- Onboarding ---------- */
   .onboard-feature{
     display:flex;
@@ -2266,7 +2341,7 @@
     const container = document.getElementById('activityLog');
     if (!container) return;
 
-    let activities = data.activities.slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    let activities = data.activities.slice();
 
     if (clubFilter === 'none') activities = activities.filter(a => !a.clubId);
     else if (clubFilter !== 'all') activities = activities.filter(a => a.clubId === clubFilter);
@@ -2280,34 +2355,94 @@
       return;
     }
 
-    container.innerHTML = activities.map(a => {
-      const club = a.clubId ? clubById(a.clubId) : null;
-      const catColor = ACTIVITY_CATEGORY_COLORS[a.category] || ACTIVITY_CATEGORY_COLORS['Other'];
-      return `
-        <div class="activity-row" data-id="${a.id}">
-          <div class="activity-hours">
-            ${parseFloat(a.hours) || 0}
-            <span>hrs</span>
-          </div>
-          <div class="activity-body">
-            <div class="activity-title">
-              <span class="act-cat-tag" style="background:${catColor}20; color:${catColor};">${escapeHtml(a.category)}</span>
-              ${escapeHtml(a.title)}
+    // Group by title + clubId — same recurring source
+    const groupMap = {};
+    activities.forEach(a => {
+      const key = `${a.title}|||${a.clubId||''}`;
+      if (!groupMap[key]) groupMap[key] = [];
+      groupMap[key].push(a);
+    });
+
+    // Build render items sorted by most recent entry
+    const renderItems = Object.values(groupMap).map(grp => {
+      grp.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+      return { isGroup: grp.length > 1, entries: grp, mostRecent: grp[0].date || '' };
+    });
+    renderItems.sort((a,b) => b.mostRecent.localeCompare(a.mostRecent));
+
+    container.innerHTML = renderItems.map(item => {
+      if (!item.isGroup) {
+        const a = item.entries[0];
+        const club = a.clubId ? clubById(a.clubId) : null;
+        const catColor = ACTIVITY_CATEGORY_COLORS[a.category] || ACTIVITY_CATEGORY_COLORS['Other'];
+        return `
+          <div class="activity-row" data-id="${a.id}">
+            <div class="activity-hours">
+              ${parseFloat(a.hours) || 0}
+              <span>hrs</span>
             </div>
-            <div class="activity-meta">
-              ${a.date ? formatDateLabel(a.date) : ''}${a.with ? ' · ' + escapeHtml(a.with) : ''}${club ? ' · ' + escapeHtml(club.name) : ''}
+            <div class="activity-body">
+              <div class="activity-title">
+                <span class="act-cat-tag" style="background:${catColor}20; color:${catColor};">${escapeHtml(a.category)}</span>
+                ${escapeHtml(a.title)}
+              </div>
+              <div class="activity-meta">
+                ${a.date ? formatDateLabel(a.date) : ''}${a.with ? ' · ' + escapeHtml(a.with) : ''}${club ? ' · ' + escapeHtml(club.name) : ''}
+              </div>
+              ${a.description ? `<div class="activity-desc">${escapeHtml(a.description)}</div>` : ''}
             </div>
-            ${a.description ? `<div class="activity-desc">${escapeHtml(a.description)}</div>` : ''}
+            <div class="event-actions">
+              <button class="btn-text" data-action="edit">Edit</button>
+              <button class="btn-text danger" data-action="delete">Delete</button>
+            </div>
           </div>
-          <div class="event-actions">
-            <button class="btn-text" data-action="edit">Edit</button>
-            <button class="btn-text danger" data-action="delete">Delete</button>
-          </div>
-        </div>
-      `;
+        `;
+      } else {
+        const grp = item.entries;
+        const totalHours = grp.reduce((s,a) => s + (parseFloat(a.hours)||0), 0);
+        const displayHours = totalHours % 1 === 0 ? totalHours : totalHours.toFixed(1);
+        const club = grp[0].clubId ? clubById(grp[0].clubId) : null;
+        const catColor = ACTIVITY_CATEGORY_COLORS[grp[0].category] || ACTIVITY_CATEGORY_COLORS['Other'];
+        return `
+          <details class="activity-group">
+            <summary class="activity-group-header">
+              <div class="activity-group-total">
+                ${displayHours}
+                <span>hrs</span>
+              </div>
+              <div style="flex:1; min-width:0;">
+                <div class="activity-title">
+                  <span class="act-cat-tag" style="background:${catColor}20; color:${catColor};">${escapeHtml(grp[0].category)}</span>
+                  ${escapeHtml(grp[0].title)}
+                </div>
+                <div class="activity-meta">${grp.length} sessions${club ? ' · ' + escapeHtml(club.name) : ''} — tap to expand</div>
+              </div>
+              <div class="activity-group-chevron">▼</div>
+            </summary>
+            <div class="activity-group-body">
+              ${grp.map(a => `
+                <div class="activity-session-row" data-id="${a.id}">
+                  <div style="flex:1; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                      <span class="activity-session-date">${a.date ? formatDateLabel(a.date) : 'No date'}</span>
+                      ${a.hours ? `<span class="activity-session-hrs">${a.hours} hrs</span>` : ''}
+                    </div>
+                    ${a.with ? `<div class="activity-meta">${escapeHtml(a.with)}</div>` : ''}
+                    ${a.description ? `<div class="activity-desc">${escapeHtml(a.description)}</div>` : ''}
+                  </div>
+                  <div class="event-actions">
+                    <button class="btn-text" data-action="edit">Edit</button>
+                    <button class="btn-text danger" data-action="delete">Delete</button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </details>
+        `;
+      }
     }).join('');
 
-    container.querySelectorAll('.activity-row').forEach(row => {
+    container.querySelectorAll('[data-id]').forEach(row => {
       const id = row.dataset.id;
       row.querySelector('[data-action="edit"]').addEventListener('click', () => {
         openActivityModal(data.activities.find(a => a.id === id));
