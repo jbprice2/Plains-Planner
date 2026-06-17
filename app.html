@@ -2303,10 +2303,10 @@
       return;
     }
 
-    // Group by title + clubId — same recurring source
+    // Group by title (case-insensitive) — same activity logged multiple times
     const groupMap = {};
     activities.forEach(a => {
-      const key = `${a.title}|||${a.clubId||''}`;
+      const key = a.title.trim().toLowerCase();
       if (!groupMap[key]) groupMap[key] = [];
       groupMap[key].push(a);
     });
