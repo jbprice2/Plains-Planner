@@ -1210,7 +1210,7 @@
             const club = e.clubId ? clubById(e.clubId) : null;
             const color = getClubColor(e.clubId);
             const isRecurring = e.kind === 'recurring';
-            const timeRange = isRecurring && e.endTime
+            const timeRange = e.endTime
               ? `${formatTimeLabel(e.time)} – ${formatTimeLabel(e.endTime)}`
               : (formatTimeLabel(e.time) || 'No time set');
             return `
@@ -1551,7 +1551,7 @@
       const club = e.clubId ? clubById(e.clubId) : null;
       const isRecurring = e.kind === 'recurring';
       const color = getClubColor(e.clubId);
-      const timeRange = isRecurring && e.endTime
+      const timeRange = e.endTime
         ? `${formatTimeLabel(e.time)} – ${formatTimeLabel(e.endTime)}`
         : (formatTimeLabel(e.time) || 'No time set');
       return `
