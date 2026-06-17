@@ -1563,7 +1563,7 @@
             ${e.link ? `<a href="${escapeHtml(e.link)}" target="_blank" rel="noopener" style="font-size:0.85rem; color:var(--orange); font-weight:700;">Open link →</a>` : ''}
           </div>
           <div class="event-actions">
-            ${e.kind === 'recurring' && e.clubId ? `<button class="btn-text" data-action="log" style="color:var(--good); font-weight:700;">Log hours</button>` : ''}
+            ${e.kind === 'recurring' && (e.trackPortfolio || e.clubId) ? `<button class="btn-text" data-action="log" style="color:var(--good); font-weight:700;">Log hours</button>` : ''}
             <button class="btn-text" data-action="edit">Edit</button>
             <button class="btn-text danger" data-action="delete">Delete</button>
           </div>
@@ -2002,7 +2002,7 @@
     const isEdit = !!existing;
     const rec = existing || {
       id: uid(), title:'', daysOfWeek:[], startTime:'', endTime:'',
-      location:'', clubId:null, link:'', notes:'', startDate:'', endDate:''
+      location:'', clubId:null, link:'', notes:'', startDate:'', endDate:'', trackPortfolio:false
     };
 
     const clubOptions = ['<option value="">No club / general</option>']
@@ -2064,6 +2064,13 @@
         <label for="r-notes">Notes</label>
         <textarea id="r-notes" placeholder="Anything to remember">${escapeHtml(rec.notes)}</textarea>
       </div>
+      <div style="border-top:1px solid var(--line); margin:1rem 0 0.9rem; padding-top:0.9rem;">
+        <label class="toggle-pill" style="width:fit-content; cursor:pointer;">
+          <input type="checkbox" id="r-track-portfolio" ${rec.trackPortfolio ? 'checked' : ''}>
+          Track in Portfolio
+        </label>
+        <p style="margin:0.4rem 0 0; font-size:0.8rem; color:var(--ink-soft);">Shows a "Log hours" button each time this appears on your calendar.</p>
+      </div>
       <div class="modal-actions">
         <button class="btn-secondary" id="cancelBtn">Cancel</button>
         <button class="btn-primary" id="saveBtn">${isEdit ? 'Save changes' : 'Add to schedule'}</button>
@@ -2124,6 +2131,7 @@
       rec.endDate = document.getElementById('r-end-date').value || '';
       rec.link = document.getElementById('r-link').value.trim();
       rec.notes = document.getElementById('r-notes').value.trim();
+      rec.trackPortfolio = document.getElementById('r-track-portfolio').checked;
 
       if (!isEdit) data.recurringEvents.push(rec);
       persist();
