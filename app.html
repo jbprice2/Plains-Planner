@@ -1081,6 +1081,25 @@
     return [...oneOff, ...recurring];
   }
 
+  function findConflictsForRecurring(candidateDays, startTime, endTime, excludeId){
+    if (!startTime) return [];
+    const candStart = timeToMinutes(startTime);
+    const candEnd = endTime ? timeToMinutes(endTime) : candStart + DEFAULT_EVENT_DURATION_MINUTES;
+    const conflicts = [];
+    data.recurringEvents.forEach(r => {
+      if (r.id === excludeId) return;
+      if (!r.startTime) return;
+      const sharedDays = r.daysOfWeek.filter(d => candidateDays.includes(d));
+      if (sharedDays.length === 0) return;
+      const rStart = timeToMinutes(r.startTime);
+      const rEnd = r.endTime ? timeToMinutes(r.endTime) : rStart + DEFAULT_EVENT_DURATION_MINUTES;
+      if (candStart < rEnd && candEnd > rStart){
+        conflicts.push({ title: r.title, days: sharedDays });
+      }
+    });
+    return conflicts;
+  }
+
   function formatDowList(daysOfWeek){
     const sorted = [...daysOfWeek].sort();
     return sorted.map(d => DOW_LABELS[d]).join(', ');
@@ -1236,6 +1255,7 @@
     const list = document.getElementById('freeList');
     list.innerHTML = days.map(day => {
       const { gaps, untimedCount } = freeBlocksForDate(day.iso);
+
       const isToday = day.iso === today;
       const dayLabel = day.date.toLocaleDateString('en-US', { weekday:'long', month:'short', day:'numeric' });
 
@@ -1249,6 +1269,7 @@
                   <div class="week-event-title">${formatTimeLabel(minutesToTimeStr(s))} – ${formatTimeLabel(minutesToTimeStr(e))}</div>
                   <div class="event-sub">${formatDuration(e-s)} free</div>
                 </div>
+                <button class="week-add free-add-btn" data-iso="${day.iso}" data-time="${minutesToTimeStr(s)}">+ Add</button>
               </div>
             `;
           }).join('');
@@ -1267,6 +1288,10 @@
         </div>
       `;
     }).join('');
+
+    list.querySelectorAll('.free-add-btn').forEach(btn => {
+      btn.addEventListener('click', () => openEventModal(null, btn.dataset.iso, btn.dataset.time));
+    });
   }
 
 
@@ -1783,9 +1808,9 @@
     document.getElementById('f-name').focus();
   }
 
-  function openEventModal(existing, presetDate){
+  function openEventModal(existing, presetDate, presetTime){
     const isEdit = !!existing;
-    const ev = existing || { id: uid(), title:'', date: presetDate || todayIso(), time:'', location:'', clubId:null, link:'', notes:'' };
+    const ev = existing || { id: uid(), title:'', date: presetDate || todayIso(), time: presetTime || '', endTime:'', location:'', clubId:null, link:'', notes:'' };
 
     const clubOptions = ['<option value="">No club / general event</option>']
       .concat(data.clubs.map(c => `<option value="${c.id}" ${c.id===ev.clubId?'selected':''}>${escapeHtml(c.name)}</option>`))
@@ -1997,18 +2022,39 @@
         <label for="r-notes">Notes</label>
         <textarea id="r-notes" placeholder="Anything to remember">${escapeHtml(rec.notes)}</textarea>
       </div>
+      <div id="r-conflict-warning" style="display:none; background:#fff3f0; border:1px solid var(--danger); border-radius:8px; padding:0.65rem 0.85rem; margin-bottom:0.5rem; font-size:0.85rem; color:var(--danger);"></div>
       <div class="modal-actions">
         <button class="btn-secondary" id="cancelBtn">Cancel</button>
         <button class="btn-primary" id="saveBtn">${isEdit ? 'Save changes' : 'Add to schedule'}</button>
       </div>
     `;
 
+    function checkRecurringConflicts(){
+      const days = Array.from(modal.querySelectorAll('.dow-check.active')).map(l => Number(l.dataset.day));
+      const startTime = document.getElementById('r-start-time').value;
+      const endTime = document.getElementById('r-end-time').value;
+      const warning = document.getElementById('r-conflict-warning');
+      if (!startTime || days.length === 0){ warning.style.display = 'none'; return; }
+      const conflicts = findConflictsForRecurring(days, startTime, endTime, rec.id);
+      if (conflicts.length === 0){
+        warning.style.display = 'none';
+      } else {
+        const names = conflicts.map(c => `"${c.title}"`).join(', ');
+        warning.style.display = 'block';
+        warning.innerHTML = `⚠ Time conflict with ${names} on ${conflicts.flatMap(c => c.days).filter((d,i,a)=>a.indexOf(d)===i).sort().map(d=>DOW_LABELS[d]).join(', ')}.`;
+      }
+    }
+
     modal.querySelectorAll('.dow-check').forEach(label => {
       const input = label.querySelector('input');
       input.addEventListener('change', () => {
         label.classList.toggle('active', input.checked);
+        checkRecurringConflicts();
       });
     });
+    document.getElementById('r-start-time').addEventListener('change', checkRecurringConflicts);
+    document.getElementById('r-end-time').addEventListener('change', checkRecurringConflicts);
+    checkRecurringConflicts();
 
     document.getElementById('cancelBtn').addEventListener('click', closeModal);
     document.getElementById('saveBtn').addEventListener('click', () => {
