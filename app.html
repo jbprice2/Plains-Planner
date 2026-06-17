@@ -1958,50 +1958,12 @@
         <textarea id="f-notes" placeholder="Anything to remember">${escapeHtml(ev.notes)}</textarea>
       </div>
 
-      <div style="border-top:1px solid var(--line); margin:1rem 0 0.9rem; padding-top:0.9rem;">
-        <label class="toggle-pill" style="width:fit-content; cursor:pointer;">
-          <input type="checkbox" id="f-log-portfolio" ${ev.trackPortfolio ? 'checked' : ''}>
-          Also log to Portfolio
-        </label>
-        <div id="portfolio-fields" style="display:${ev.trackPortfolio ? 'block' : 'none'}; margin-top:0.9rem;">
-          <div class="field">
-            <label for="f-act-category">Category</label>
-            <select id="f-act-category">
-              ${ACTIVITY_CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('')}
-            </select>
-          </div>
-          <div class="field-row">
-            <div class="field">
-              <label for="f-act-hours">Hours</label>
-              <input id="f-act-hours" type="number" min="0" step="0.5" placeholder="e.g. 2">
-            </div>
-            <div class="field">
-              <label for="f-act-with">With / At</label>
-              <input id="f-act-with" type="text" placeholder="e.g. Dr. Smith, UAB Hospital">
-            </div>
-          </div>
-          <div class="field">
-            <label for="f-act-desc">Description</label>
-            <textarea id="f-act-desc" placeholder="What did you do? What did you learn?"></textarea>
-          </div>
-        </div>
-      </div>
-
       <div class="modal-actions">
         <button class="btn-secondary" id="cancelBtn">Cancel</button>
         <button class="btn-primary" id="saveBtn">${isEdit ? 'Save changes' : 'Add event'}</button>
       </div>
     `;
 
-    function autoFillHours(){
-      const start = document.getElementById('f-time').value;
-      const end = document.getElementById('f-end-time').value;
-      if (!start || !end) return;
-      const [sh, sm] = start.split(':').map(Number);
-      const [eh, em] = end.split(':').map(Number);
-      const diff = (eh * 60 + em) - (sh * 60 + sm);
-      if (diff > 0) document.getElementById('f-act-hours').value = (diff / 60).toFixed(1).replace(/\.0$/, '');
-    }
 
     function checkEventConflicts(){
       const date = document.getElementById('f-date').value;
@@ -2026,17 +1988,6 @@
     document.getElementById('f-end-time').addEventListener('input', checkEventConflicts);
     checkEventConflicts();
 
-    document.getElementById('f-log-portfolio').addEventListener('change', e => {
-      document.getElementById('portfolio-fields').style.display = e.target.checked ? 'block' : 'none';
-      if (e.target.checked) autoFillHours();
-    });
-    document.getElementById('f-time').addEventListener('change', () => {
-      if (document.getElementById('f-log-portfolio').checked) autoFillHours();
-    });
-    document.getElementById('f-end-time').addEventListener('change', () => {
-      if (document.getElementById('f-log-portfolio').checked) autoFillHours();
-    });
-
     document.getElementById('cancelBtn').addEventListener('click', closeModal);
     document.getElementById('saveBtn').addEventListener('click', () => {
       const title = document.getElementById('f-title').value.trim();
@@ -2044,7 +1995,6 @@
       if (!title){ document.getElementById('f-title').focus(); return; }
       if (!date){ document.getElementById('f-date').focus(); return; }
 
-      const wasLoggedBefore = !!ev.trackPortfolio;
       ev.title = title;
       ev.date = date;
       ev.time = document.getElementById('f-time').value;
@@ -2053,24 +2003,8 @@
       ev.clubId = document.getElementById('f-club').value || null;
       ev.link = document.getElementById('f-link').value.trim();
       ev.notes = document.getElementById('f-notes').value.trim();
-      ev.trackPortfolio = document.getElementById('f-log-portfolio').checked;
 
       if (!isEdit) data.events.push(ev);
-
-      // create portfolio activity only when first enabling (not on every edit)
-      if (ev.trackPortfolio && !wasLoggedBefore){
-        data.activities.push({
-          id: uid(),
-          title: ev.title,
-          category: document.getElementById('f-act-category').value,
-          date: ev.date,
-          hours: document.getElementById('f-act-hours').value,
-          with: document.getElementById('f-act-with').value.trim(),
-          clubId: ev.clubId,
-          description: document.getElementById('f-act-desc').value.trim(),
-          eventId: ev.id
-        });
-      }
 
       persist();
       closeModal();
