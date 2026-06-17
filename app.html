@@ -1839,11 +1839,11 @@
         <label for="f-title">Title</label>
         <input id="f-title" type="text" value="${escapeHtml(ev.title)}" placeholder="e.g. General body meeting">
       </div>
+      <div class="field">
+        <label for="f-date">Date</label>
+        <input id="f-date" type="date" value="${ev.date}">
+      </div>
       <div class="field-row">
-        <div class="field">
-          <label for="f-date">Date</label>
-          <input id="f-date" type="date" value="${ev.date}">
-        </div>
         <div class="field">
           <label for="f-time">Start time</label>
           <input id="f-time" type="time" value="${ev.time||''}">
