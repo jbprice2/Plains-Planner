@@ -953,7 +953,7 @@
     return club.color || CATEGORY_COLORS[club.category] || CATEGORY_COLORS['Other'];
   }
 
-  let data = { clubs: [], events: [], recurringEvents: [] };
+  let data = { clubs: [], events: [], recurringEvents: [], activities: [] };
 
   let ui = {
     tab: 'week',
@@ -962,7 +962,8 @@
     followingOnly: false,
     calYear: new Date().getFullYear(),
     calMonth: new Date().getMonth(), // 0-indexed
-    selectedDay: null
+    selectedDay: null,
+    activityFilter: 'all'
   };
 
   function pad(n){ return String(n).padStart(2,'0'); }
@@ -1662,6 +1663,7 @@
           }
           if (kind === 'recurring') {
             const rec = data.recurringEvents.find(r => r.id === id);
+            if (!rec) return;
             openActivityModal({
               id: uid(), title: rec.title, category: ACTIVITY_CATEGORIES[0],
               date: selected, hours: calcHours(rec.startTime, rec.endTime),
@@ -1669,6 +1671,7 @@
             }, true);
           } else {
             const ev = data.events.find(e => e.id === id);
+            if (!ev) return;
             openActivityModal({
               id: uid(), title: ev.title, category: ACTIVITY_CATEGORIES[0],
               date: selected, hours: calcHours(ev.startTime, ev.endTime),
@@ -2244,12 +2247,14 @@
 
     document.getElementById('logActivityBtn').addEventListener('click', () => openActivityModal(null));
     document.getElementById('exportPortfolioBtn').addEventListener('click', exportPortfolio);
+    document.getElementById('activityClubFilter').value = ui.activityFilter;
     document.getElementById('activityClubFilter').addEventListener('change', e => {
+      ui.activityFilter = e.target.value;
       renderActivityLog(e.target.value);
     });
 
     renderPortfolioOrgs();
-    renderActivityLog('all');
+    renderActivityLog(ui.activityFilter);
   }
 
   function renderPortfolioOrgs(){
@@ -2588,7 +2593,8 @@
             data = {
               clubs: parsed.clubs,
               events: parsed.events,
-              recurringEvents: parsed.recurringEvents
+              recurringEvents: parsed.recurringEvents,
+              activities: parsed.activities || []
             };
             await persist();
             render();
