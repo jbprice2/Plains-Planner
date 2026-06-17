@@ -1081,6 +1081,23 @@
     return [...oneOff, ...recurring];
   }
 
+  function findConflictsForEvent(date, startTime, endTime, excludeId){
+    if (!date || !startTime) return [];
+    const candStart = timeToMinutes(startTime);
+    const candEnd = endTime ? timeToMinutes(endTime) : candStart + DEFAULT_EVENT_DURATION_MINUTES;
+    const conflicts = [];
+    occurrencesForDate(date).forEach(o => {
+      if (o.id === excludeId) return;
+      if (!o.time) return;
+      const oStart = timeToMinutes(o.time);
+      const oEnd = o.endTime ? timeToMinutes(o.endTime) : oStart + DEFAULT_EVENT_DURATION_MINUTES;
+      if (candStart < oEnd && candEnd > oStart){
+        conflicts.push(o.title);
+      }
+    });
+    return conflicts;
+  }
+
   function findConflictsForRecurring(candidateDays, startTime, endTime, excludeId){
     if (!startTime) return [];
     const candStart = timeToMinutes(startTime);
@@ -1836,6 +1853,7 @@
           <input id="f-end-time" type="time" value="${ev.endTime||''}">
         </div>
       </div>
+      <div id="f-conflict-warning" style="display:none; background:#fff3f0; border:1px solid var(--danger); border-radius:8px; padding:0.65rem 0.85rem; margin-bottom:0.5rem; font-size:0.85rem; color:var(--danger);"></div>
       <div class="field">
         <label for="f-location">Location</label>
         <input id="f-location" type="text" value="${escapeHtml(ev.location)}" placeholder="e.g. Student Center 2222">
@@ -1897,6 +1915,29 @@
       const diff = (eh * 60 + em) - (sh * 60 + sm);
       if (diff > 0) document.getElementById('f-act-hours').value = (diff / 60).toFixed(1).replace(/\.0$/, '');
     }
+
+    function checkEventConflicts(){
+      const date = document.getElementById('f-date').value;
+      const startTime = document.getElementById('f-time').value;
+      const endTime = document.getElementById('f-end-time').value;
+      const warning = document.getElementById('f-conflict-warning');
+      if (!startTime || !date){ warning.style.display = 'none'; return; }
+      const conflicts = findConflictsForEvent(date, startTime, endTime, ev.id);
+      if (conflicts.length === 0){
+        warning.style.display = 'none';
+      } else {
+        warning.style.display = 'block';
+        warning.innerHTML = `⚠ Time conflict with ${conflicts.map(t => `"${t}"`).join(', ')}.`;
+      }
+    }
+
+    document.getElementById('f-date').addEventListener('change', checkEventConflicts);
+    document.getElementById('f-date').addEventListener('input', checkEventConflicts);
+    document.getElementById('f-time').addEventListener('change', checkEventConflicts);
+    document.getElementById('f-time').addEventListener('input', checkEventConflicts);
+    document.getElementById('f-end-time').addEventListener('change', checkEventConflicts);
+    document.getElementById('f-end-time').addEventListener('input', checkEventConflicts);
+    checkEventConflicts();
 
     document.getElementById('f-log-portfolio').addEventListener('change', e => {
       document.getElementById('portfolio-fields').style.display = e.target.checked ? 'block' : 'none';
