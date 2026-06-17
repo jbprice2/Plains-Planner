@@ -1521,6 +1521,7 @@
             ${e.link ? `<a href="${escapeHtml(e.link)}" target="_blank" rel="noopener" style="font-size:0.85rem; color:var(--orange); font-weight:700;">Open link →</a>` : ''}
           </div>
           <div class="event-actions">
+            ${e.kind === 'recurring' && e.clubId ? `<button class="btn-text" data-action="log" style="color:var(--good); font-weight:700;">Log hours</button>` : ''}
             <button class="btn-text" data-action="edit">Edit</button>
             <button class="btn-text danger" data-action="delete">Delete</button>
           </div>
@@ -1531,6 +1532,28 @@
     panel.querySelectorAll('.event-row').forEach(row => {
       const id = row.dataset.id;
       const kind = row.dataset.kind;
+      const logBtn = row.querySelector('[data-action="log"]');
+      if (logBtn) {
+        logBtn.addEventListener('click', () => {
+          const rec = data.recurringEvents.find(r => r.id === id);
+          const prefilledHours = rec.startTime && rec.endTime ? (() => {
+            const [sh, sm] = rec.startTime.split(':').map(Number);
+            const [eh, em] = rec.endTime.split(':').map(Number);
+            const diff = (eh * 60 + em) - (sh * 60 + sm);
+            return diff > 0 ? String((diff / 60).toFixed(1).replace(/\.0$/, '')) : '';
+          })() : '';
+          openActivityModal({
+            id: uid(),
+            title: rec.title,
+            category: ACTIVITY_CATEGORIES[0],
+            date: selected,
+            hours: prefilledHours,
+            with: '',
+            clubId: rec.clubId,
+            description: ''
+          }, true);
+        });
+      }
       row.querySelector('[data-action="edit"]').addEventListener('click', () => {
         if (kind === 'recurring'){
           openRecurringModal(data.recurringEvents.find(r => r.id === id));
@@ -1780,8 +1803,12 @@
           <input id="f-date" type="date" value="${ev.date}">
         </div>
         <div class="field">
-          <label for="f-time">Time</label>
+          <label for="f-time">Start time</label>
           <input id="f-time" type="time" value="${ev.time||''}">
+        </div>
+        <div class="field">
+          <label for="f-end-time">End time</label>
+          <input id="f-end-time" type="time" value="${ev.endTime||''}">
         </div>
       </div>
       <div class="field">
@@ -1836,8 +1863,25 @@
       </div>
     `;
 
+    function autoFillHours(){
+      const start = document.getElementById('f-time').value;
+      const end = document.getElementById('f-end-time').value;
+      if (!start || !end) return;
+      const [sh, sm] = start.split(':').map(Number);
+      const [eh, em] = end.split(':').map(Number);
+      const diff = (eh * 60 + em) - (sh * 60 + sm);
+      if (diff > 0) document.getElementById('f-act-hours').value = (diff / 60).toFixed(1).replace(/\.0$/, '');
+    }
+
     document.getElementById('f-log-portfolio').addEventListener('change', e => {
       document.getElementById('portfolio-fields').style.display = e.target.checked ? 'block' : 'none';
+      if (e.target.checked) autoFillHours();
+    });
+    document.getElementById('f-time').addEventListener('change', () => {
+      if (document.getElementById('f-log-portfolio').checked) autoFillHours();
+    });
+    document.getElementById('f-end-time').addEventListener('change', () => {
+      if (document.getElementById('f-log-portfolio').checked) autoFillHours();
     });
 
     document.getElementById('cancelBtn').addEventListener('click', closeModal);
@@ -1850,6 +1894,7 @@
       ev.title = title;
       ev.date = date;
       ev.time = document.getElementById('f-time').value;
+      ev.endTime = document.getElementById('f-end-time').value;
       ev.location = document.getElementById('f-location').value.trim();
       ev.clubId = document.getElementById('f-club').value || null;
       ev.link = document.getElementById('f-link').value.trim();
@@ -2180,8 +2225,8 @@
     });
   }
 
-  function openActivityModal(existing){
-    const isEdit = !!existing;
+  function openActivityModal(existing, prefilled){
+    const isEdit = !!existing && !prefilled;
     const act = existing || {
       id: uid(), title:'', category: ACTIVITY_CATEGORIES[0],
       date: todayIso(), hours:'', with:'', clubId:null, description:''
