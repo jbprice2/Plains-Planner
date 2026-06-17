@@ -1996,6 +1996,7 @@
           <input id="r-end-time" type="time" value="${rec.endTime||''}">
         </div>
       </div>
+      <div id="r-conflict-warning" style="display:none; background:#fff3f0; border:1px solid var(--danger); border-radius:8px; padding:0.65rem 0.85rem; margin-bottom:0.5rem; font-size:0.85rem; color:var(--danger);"></div>
       <div class="field">
         <label for="r-location">Location</label>
         <input id="r-location" type="text" value="${escapeHtml(rec.location)}" placeholder="e.g. Haley Center 1234">
@@ -2022,7 +2023,6 @@
         <label for="r-notes">Notes</label>
         <textarea id="r-notes" placeholder="Anything to remember">${escapeHtml(rec.notes)}</textarea>
       </div>
-      <div id="r-conflict-warning" style="display:none; background:#fff3f0; border:1px solid var(--danger); border-radius:8px; padding:0.65rem 0.85rem; margin-bottom:0.5rem; font-size:0.85rem; color:var(--danger);"></div>
       <div class="modal-actions">
         <button class="btn-secondary" id="cancelBtn">Cancel</button>
         <button class="btn-primary" id="saveBtn">${isEdit ? 'Save changes' : 'Add to schedule'}</button>
@@ -2053,7 +2053,9 @@
       });
     });
     document.getElementById('r-start-time').addEventListener('change', checkRecurringConflicts);
+    document.getElementById('r-start-time').addEventListener('input', checkRecurringConflicts);
     document.getElementById('r-end-time').addEventListener('change', checkRecurringConflicts);
+    document.getElementById('r-end-time').addEventListener('input', checkRecurringConflicts);
     checkRecurringConflicts();
 
     document.getElementById('cancelBtn').addEventListener('click', closeModal);
