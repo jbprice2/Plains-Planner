@@ -1639,7 +1639,7 @@
             ${e.link ? `<a href="${escapeHtml(e.link)}" target="_blank" rel="noopener" style="font-size:0.85rem; color:var(--orange); font-weight:700;">Open link →</a>` : ''}
           </div>
           <div class="event-actions">
-            ${e.kind === 'recurring' && (e.trackPortfolio || e.clubId) ? `<button class="btn-text" data-action="log" style="color:var(--good); font-weight:700;">Log hours</button>` : ''}
+            ${(e.kind !== 'recurring' || e.trackPortfolio || e.clubId) ? `<button class="btn-text" data-action="log" style="color:var(--good); font-weight:700;">Log hours</button>` : ''}
             <button class="btn-text" data-action="edit">Edit</button>
             <button class="btn-text danger" data-action="delete">Delete</button>
           </div>
@@ -1653,23 +1653,28 @@
       const logBtn = row.querySelector('[data-action="log"]');
       if (logBtn) {
         logBtn.addEventListener('click', () => {
-          const rec = data.recurringEvents.find(r => r.id === id);
-          const prefilledHours = rec.startTime && rec.endTime ? (() => {
-            const [sh, sm] = rec.startTime.split(':').map(Number);
-            const [eh, em] = rec.endTime.split(':').map(Number);
+          function calcHours(startTime, endTime) {
+            if (!startTime || !endTime) return '';
+            const [sh, sm] = startTime.split(':').map(Number);
+            const [eh, em] = endTime.split(':').map(Number);
             const diff = (eh * 60 + em) - (sh * 60 + sm);
             return diff > 0 ? String((diff / 60).toFixed(1).replace(/\.0$/, '')) : '';
-          })() : '';
-          openActivityModal({
-            id: uid(),
-            title: rec.title,
-            category: ACTIVITY_CATEGORIES[0],
-            date: selected,
-            hours: prefilledHours,
-            with: '',
-            clubId: rec.clubId,
-            description: ''
-          }, true);
+          }
+          if (kind === 'recurring') {
+            const rec = data.recurringEvents.find(r => r.id === id);
+            openActivityModal({
+              id: uid(), title: rec.title, category: ACTIVITY_CATEGORIES[0],
+              date: selected, hours: calcHours(rec.startTime, rec.endTime),
+              with: '', clubId: rec.clubId, description: '', recurringId: rec.id
+            }, true);
+          } else {
+            const ev = data.events.find(e => e.id === id);
+            openActivityModal({
+              id: uid(), title: ev.title, category: ACTIVITY_CATEGORIES[0],
+              date: selected, hours: calcHours(ev.startTime, ev.endTime),
+              with: '', clubId: ev.clubId || null, description: '', eventId: ev.id
+            }, true);
+          }
         });
       }
       row.querySelector('[data-action="edit"]').addEventListener('click', () => {
@@ -1682,22 +1687,28 @@
       row.querySelector('[data-action="delete"]').addEventListener('click', () => {
         if (kind === 'recurring'){
           const rec = data.recurringEvents.find(r => r.id === id);
+          const linked = data.activities.filter(a => a.recurringId === id).length;
           openConfirmModal(
             `Delete "${rec.title}"?`,
-            'This is a recurring item — deleting it removes every occurrence, not just this day.',
+            `This is a recurring item — deleting it removes every occurrence, not just this day.${linked ? ` It will also remove ${linked} logged portfolio entr${linked === 1 ? 'y' : 'ies'}.` : ''}`,
             () => {
               data.recurringEvents = data.recurringEvents.filter(r => r.id !== id);
+              data.activities = data.activities.filter(a => a.recurringId !== id);
               persist();
               render();
             }
           );
         } else {
           const ev = data.events.find(e => e.id === id);
-          openConfirmModal(`Delete "${ev.title}"?`, 'This cannot be undone.', () => {
-            data.events = data.events.filter(e => e.id !== id);
-            persist();
-            render();
-          });
+          const linked = data.activities.filter(a => a.eventId === id).length;
+          openConfirmModal(`Delete "${ev.title}"?`,
+            `This cannot be undone.${linked ? ` It will also remove ${linked} logged portfolio entr${linked === 1 ? 'y' : 'ies'}.` : ''}`,
+            () => {
+              data.events = data.events.filter(e => e.id !== id);
+              data.activities = data.activities.filter(a => a.eventId !== id);
+              persist();
+              render();
+            });
         }
       });
     });
