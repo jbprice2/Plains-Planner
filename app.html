@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1914,7 +1914,7 @@
 
   function openEventModal(existing, presetDate, presetTime){
     const isEdit = !!existing;
-    const ev = existing || { id: uid(), title:'', date: presetDate || todayIso(), time: presetTime || '', endTime:'', location:'', clubId:null, link:'', notes:'' };
+    const ev = existing || { id: uid(), title:'', date: presetDate || todayIso(), time: presetTime || '', endTime:'', location:'', clubId:null, link:'', notes:'', trackPortfolio: false };
 
     const clubOptions = ['<option value="">No club / general event</option>']
       .concat(data.clubs.map(c => `<option value="${c.id}" ${c.id===ev.clubId?'selected':''}>${escapeHtml(c.name)}</option>`))
@@ -1960,10 +1960,10 @@
 
       <div style="border-top:1px solid var(--line); margin:1rem 0 0.9rem; padding-top:0.9rem;">
         <label class="toggle-pill" style="width:fit-content; cursor:pointer;">
-          <input type="checkbox" id="f-log-portfolio">
+          <input type="checkbox" id="f-log-portfolio" ${ev.trackPortfolio ? 'checked' : ''}>
           Also log to Portfolio
         </label>
-        <div id="portfolio-fields" style="display:none; margin-top:0.9rem;">
+        <div id="portfolio-fields" style="display:${ev.trackPortfolio ? 'block' : 'none'}; margin-top:0.9rem;">
           <div class="field">
             <label for="f-act-category">Category</label>
             <select id="f-act-category">
@@ -2044,6 +2044,7 @@
       if (!title){ document.getElementById('f-title').focus(); return; }
       if (!date){ document.getElementById('f-date').focus(); return; }
 
+      const wasLoggedBefore = !!ev.trackPortfolio;
       ev.title = title;
       ev.date = date;
       ev.time = document.getElementById('f-time').value;
@@ -2052,11 +2053,12 @@
       ev.clubId = document.getElementById('f-club').value || null;
       ev.link = document.getElementById('f-link').value.trim();
       ev.notes = document.getElementById('f-notes').value.trim();
+      ev.trackPortfolio = document.getElementById('f-log-portfolio').checked;
 
       if (!isEdit) data.events.push(ev);
 
-      // auto-create portfolio activity if toggled
-      if (document.getElementById('f-log-portfolio').checked){
+      // create portfolio activity only when first enabling (not on every edit)
+      if (ev.trackPortfolio && !wasLoggedBefore){
         data.activities.push({
           id: uid(),
           title: ev.title,
@@ -2065,7 +2067,8 @@
           hours: document.getElementById('f-act-hours').value,
           with: document.getElementById('f-act-with').value.trim(),
           clubId: ev.clubId,
-          description: document.getElementById('f-act-desc').value.trim()
+          description: document.getElementById('f-act-desc').value.trim(),
+          eventId: ev.id
         });
       }
 
