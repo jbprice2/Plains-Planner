@@ -843,7 +843,7 @@
   </div>
 
   <!-- Sync banner for anonymous users -->
-  <div id="syncBanner" style="display:none;background:#0b2341;color:#faf6ee;padding:0.5rem 1rem;font-family:'JetBrains Mono',monospace;font-size:0.75rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;">
+  <div id="syncBanner" style="display:none;background:#0b2341;color:#faf6ee;padding:0.5rem 1rem;font-family:'JetBrains Mono',monospace;font-size:0.75rem;align-items:center;justify-content:space-between;gap:1rem;">
     <span>⚠ Data saved on this device only</span>
     <button id="syncSignInBtn" style="background:#dd550c;color:#fff;border:none;border-radius:6px;padding:0.3rem 0.75rem;font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;cursor:pointer;">Sign in with Google →</button>
   </div>
@@ -1026,7 +1026,7 @@
     const banner = document.getElementById('syncBanner');
     const signOutBtn = document.getElementById('signOutBtn');
     if (isAnonymous()){
-      banner.style.display = 'flex';
+      banner.style.cssText += ';display:flex';
       signOutBtn.style.display = 'none';
     } else {
       banner.style.display = 'none';
