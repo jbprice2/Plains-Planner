@@ -10,6 +10,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>The Plains Planner</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Anton&family=Libre+Franklin:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
@@ -819,6 +820,10 @@
 </style>
 </head>
 <body>
+  <div id="loadingScreen" style="position:fixed;inset:0;background:#0b2341;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:1rem;">
+    <div style="font-family:'Anton',sans-serif;font-size:1.6rem;letter-spacing:0.08em;color:#faf6ee;">THE PLAINS PLANNER</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:#f4934f;letter-spacing:0.06em;">CONNECTING…</div>
+  </div>
   <div class="app">
     <header class="hero">
       <div class="hero-top">
@@ -885,7 +890,10 @@
   // ---------------------------------------------------------------
   // Data
   // ---------------------------------------------------------------
-  const STORAGE_KEY = 'plains-planner-v1';
+  const SUPABASE_URL = 'https://faurmsdrpozefhxakupy.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_q5Keyvxu7ideTkANzbB1DA_I_n77JGo';
+  const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  let _user = null;
 
   const CATEGORIES = [
     'Academic & Honors',
@@ -987,29 +995,50 @@
   // Storage
   // ---------------------------------------------------------------
   async function loadData(){
-    try{
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw){
-        data = JSON.parse(raw);
-        if (!Array.isArray(data.recurringEvents)) data.recurringEvents = [];
-        if (!Array.isArray(data.clubs)) data.clubs = [];
-        if (!Array.isArray(data.events)) data.events = [];
-        if (!Array.isArray(data.activities)) data.activities = [];
-        return;
-      }
-    }catch(e){
-      // storage unavailable or corrupted -> seed
+    // Restore existing session or create a new anonymous one
+    let { data: { session } } = await _sb.auth.getSession();
+    if (!session){
+      const { data: { session: s }, error } = await _sb.auth.signInAnonymously();
+      if (error) throw error;
+      session = s;
     }
+    _user = session.user;
+
+    const { data: row, error } = await _sb
+      .from('user_data')
+      .select('clubs, events, recurring_events, activities, welcomed')
+      .eq('user_id', _user.id)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (row){
+      data = {
+        clubs:          row.clubs          || [],
+        events:         row.events         || [],
+        recurringEvents:row.recurring_events|| [],
+        activities:     row.activities     || []
+      };
+      return row.welcomed || false;
+    }
+
+    // First visit — seed sample data and create the row
     data = seedData();
     await persist();
+    return false;
   }
 
   async function persist(){
-    try{
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }catch(e){
-      console.error('Could not save data', e);
-    }
+    if (!_user) return;
+    const { error } = await _sb.from('user_data').upsert({
+      user_id:          _user.id,
+      clubs:            data.clubs,
+      events:           data.events,
+      recurring_events: data.recurringEvents,
+      activities:       data.activities,
+      updated_at:       new Date().toISOString()
+    });
+    if (error) console.error('Could not save data', error);
   }
 
   // ---------------------------------------------------------------
@@ -2638,7 +2667,10 @@
   // ---------------------------------------------------------------
   // Onboarding
   // ---------------------------------------------------------------
-  const WELCOMED_KEY = 'plains-planner-welcomed';
+  async function markWelcomed(){
+    if (!_user) return;
+    await _sb.from('user_data').update({ welcomed: true }).eq('user_id', _user.id);
+  }
 
   function showOnboarding(){
     modal.innerHTML = `
@@ -2686,7 +2718,7 @@
     `;
 
     document.getElementById('onboardDoneBtn').addEventListener('click', () => {
-      localStorage.setItem(WELCOMED_KEY, '1');
+      markWelcomed();
       closeModal();
     });
 
@@ -2697,12 +2729,23 @@
   // Init
   // ---------------------------------------------------------------
   (async function init(){
-    await loadData();
-    ui.selectedDay = todayIso();
-    render();
-    if (!localStorage.getItem(WELCOMED_KEY)){
-      showOnboarding();
+    try {
+      const welcomed = await loadData();
+      ui.selectedDay = todayIso();
+      render();
+      if (!welcomed) showOnboarding();
+    } catch(e) {
+      console.error('Failed to connect to Supabase', e);
+      document.getElementById('loadingScreen').innerHTML = `
+        <div style="font-family:'Anton',sans-serif;font-size:1.4rem;letter-spacing:0.06em;color:#faf6ee;">CONNECTION ERROR</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:#f4934f;max-width:300px;text-align:center;">
+          Could not connect to the server. Check your internet connection and reload.
+        </div>
+        <button onclick="location.reload()" style="margin-top:1rem;padding:0.6rem 1.4rem;background:#dd550c;color:#fff;border:none;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:0.85rem;cursor:pointer;">Reload</button>
+      `;
+      return;
     }
+    document.getElementById('loadingScreen').style.display = 'none';
   })();
 </script>
 </body>
