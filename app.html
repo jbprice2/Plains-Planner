@@ -935,7 +935,15 @@
   // ---------------------------------------------------------------
   const SUPABASE_URL = 'https://faurmsdrpozefhxakupy.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_q5Keyvxu7ideTkANzbB1DA_I_n77JGo';
-  const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storageKey: 'plains-planner-auth',
+      storage: window.localStorage
+    }
+  });
   let _user = null;
 
   const CATEGORIES = [
