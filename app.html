@@ -2833,6 +2833,54 @@
   // ---------------------------------------------------------------
   // Init
   // ---------------------------------------------------------------
+  let _authButtonsReady = false;
+  function showAuthScreen(){
+    document.getElementById('authScreen').style.display = 'flex';
+    if (_authButtonsReady) return;
+    _authButtonsReady = true;
+
+    document.getElementById('magicLinkBtn').addEventListener('click', async () => {
+      const email = document.getElementById('magicEmailInput').value.trim();
+      if (!email){ setAuthStatus('Enter your email first.'); return; }
+      setAuthStatus('Sending link…');
+      const { error } = await _sb.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: 'https://jbprice2.github.io/Plains-Planner/app.html' }
+      });
+      if (error){ setAuthStatus('Could not send — check the email and try again.'); return; }
+      setAuthStatus('');
+      document.getElementById('magicSent').style.display = 'block';
+      document.getElementById('magicLinkBtn').disabled = true;
+      document.getElementById('magicEmailInput').disabled = true;
+    });
+
+    document.getElementById('googleSignInBtn').addEventListener('click', async () => {
+      setAuthStatus('Opening Google sign-in…');
+      await signInWithGoogle();
+    });
+
+    document.getElementById('anonBtn').addEventListener('click', async () => {
+      setAuthStatus('Setting up your session…');
+      const { data: { session: s }, error } = await _sb.auth.signInAnonymously();
+      if (error){ setAuthStatus('Something went wrong — try again.'); return; }
+      _user = s.user;
+      const row = await fetchUserData();
+      if (row){
+        data = {
+          clubs:           row.clubs            || [],
+          events:          row.events           || [],
+          recurringEvents: row.recurring_events || [],
+          activities:      row.activities       || []
+        };
+        showApp(row.welcomed || false);
+      } else {
+        data = seedData();
+        await persist();
+        showApp(false);
+      }
+    });
+  }
+
   function showApp(welcomed){
     document.getElementById('loadingScreen').style.display = 'none';
     document.getElementById('authScreen').style.display = 'none';
@@ -2842,7 +2890,7 @@
     if (!welcomed) showOnboarding();
     document.getElementById('syncSignInBtn').addEventListener('click', () => {
       document.getElementById('syncBanner').style.display = 'none';
-      document.getElementById('authScreen').style.display = 'flex';
+      showAuthScreen();
     });
     document.getElementById('signOutBtn').addEventListener('click', async () => {
       await _sb.auth.signOut();
@@ -2915,48 +2963,7 @@
 
       // No session — show auth screen
       document.getElementById('loadingScreen').style.display = 'none';
-      document.getElementById('authScreen').style.display = 'flex';
-
-      document.getElementById('magicLinkBtn').addEventListener('click', async () => {
-        const email = document.getElementById('magicEmailInput').value.trim();
-        if (!email){ setAuthStatus('Enter your email first.'); return; }
-        setAuthStatus('Sending link…');
-        const { error } = await _sb.auth.signInWithOtp({
-          email,
-          options: { emailRedirectTo: 'https://jbprice2.github.io/Plains-Planner/app.html' }
-        });
-        if (error){ setAuthStatus('Could not send — check the email and try again.'); return; }
-        setAuthStatus('');
-        document.getElementById('magicSent').style.display = 'block';
-        document.getElementById('magicLinkBtn').disabled = true;
-        document.getElementById('magicEmailInput').disabled = true;
-      });
-
-      document.getElementById('googleSignInBtn').addEventListener('click', async () => {
-        setAuthStatus('Opening Google sign-in…');
-        await signInWithGoogle();
-      });
-
-      document.getElementById('anonBtn').addEventListener('click', async () => {
-        setAuthStatus('Setting up your session…');
-        const { data: { session: s }, error } = await _sb.auth.signInAnonymously();
-        if (error){ setAuthStatus('Something went wrong — try again.'); return; }
-        _user = s.user;
-        const row = await fetchUserData();
-        if (row){
-          data = {
-            clubs:           row.clubs            || [],
-            events:          row.events           || [],
-            recurringEvents: row.recurring_events || [],
-            activities:      row.activities       || []
-          };
-          showApp(row.welcomed || false);
-        } else {
-          data = seedData();
-          await persist();
-          showApp(false);
-        }
-      });
+      showAuthScreen();
 
     } catch(e){
       console.error('Init failed', e);
