@@ -1151,7 +1151,27 @@
       activities:       data.activities,
       updated_at:       new Date().toISOString()
     });
-    if (error) console.error('Could not save data', error);
+    if (error){
+      console.error('Could not save data', error);
+      showToast('⚠ Changes could not be saved — check your connection.', 'danger');
+    }
+  }
+
+  let _toastTimer = null;
+  function showToast(msg, type = 'info'){
+    let toast = document.getElementById('appToast');
+    if (!toast){
+      toast = document.createElement('div');
+      toast.id = 'appToast';
+      toast.style.cssText = 'position:fixed;bottom:1.25rem;left:50%;transform:translateX(-50%);padding:0.6rem 1.1rem;border-radius:8px;font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;font-weight:700;z-index:9998;transition:opacity 0.3s;white-space:nowrap;';
+      document.body.appendChild(toast);
+    }
+    toast.style.background = type === 'danger' ? 'var(--danger)' : 'var(--navy)';
+    toast.style.color = '#fff';
+    toast.style.opacity = '1';
+    toast.textContent = msg;
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => { toast.style.opacity = '0'; }, 3500);
   }
 
   // ---------------------------------------------------------------
@@ -1370,6 +1390,14 @@
   function escapeHtml(str){
     if (!str) return '';
     return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  function safeUrl(url){
+    if (!url) return '';
+    try {
+      const u = new URL(url);
+      return (u.protocol === 'https:' || u.protocol === 'http:') ? url : '';
+    } catch(e){ return ''; }
   }
 
   // ---------------------------------------------------------------
@@ -1613,7 +1641,7 @@
           ${c.meetingInfo ? `<p class="meta">${escapeHtml(c.meetingInfo)}</p>` : ''}
           ${c.notes ? `<p class="notes">${escapeHtml(c.notes)}</p>` : ''}
           <div class="card-actions">
-            ${c.link ? `<a href="${escapeHtml(c.link)}" target="_blank" rel="noopener">Open in AuInvolve →</a>` : '<span></span>'}
+            ${safeUrl(c.link) ? `<a href="${safeUrl(c.link)}" target="_blank" rel="noopener">Open in AuInvolve →</a>` : '<span></span>'}
             <div class="right">
               <button class="btn-text" data-action="edit">Edit</button>
               <button class="btn-text danger" data-action="delete">Delete</button>
@@ -1779,7 +1807,7 @@
             <div class="event-title"><span class="event-dot" style="background:${color};"></span>${escapeHtml(e.title)}${isRecurring ? '<span class="recur-tag">Weekly</span>' : ''}</div>
             <div class="event-sub">${timeRange}${e.location ? ' · ' + escapeHtml(e.location) : ''}${club ? ' · ' + escapeHtml(club.name) : ''}</div>
             ${e.notes ? `<div class="event-notes">${escapeHtml(e.notes)}</div>` : ''}
-            ${e.link ? `<a href="${escapeHtml(e.link)}" target="_blank" rel="noopener" style="font-size:0.85rem; color:var(--orange); font-weight:700;">Open link →</a>` : ''}
+            ${safeUrl(e.link) ? `<a href="${safeUrl(e.link)}" target="_blank" rel="noopener" style="font-size:0.85rem; color:var(--orange); font-weight:700;">Open link →</a>` : ''}
           </div>
           <div class="event-actions">
             ${(e.kind !== 'recurring' || e.trackPortfolio || e.clubId) ? `<button class="btn-text" data-action="log" style="color:var(--good); font-weight:700;">Log hours</button>` : ''}
@@ -1919,7 +1947,7 @@
           <p class="meta">${rangeLabel}</p>
           ${r.notes ? `<p class="notes">${escapeHtml(r.notes)}</p>` : ''}
           <div class="card-actions">
-            ${r.link ? `<a href="${escapeHtml(r.link)}" target="_blank" rel="noopener">Open link →</a>` : '<span></span>'}
+            ${safeUrl(r.link) ? `<a href="${safeUrl(r.link)}" target="_blank" rel="noopener">Open link →</a>` : '<span></span>'}
             <div class="right">
               <button class="btn-text" data-action="edit">Edit</button>
               <button class="btn-text danger" data-action="delete">Delete</button>
@@ -2907,8 +2935,16 @@
   }
 
   (async function init(){
+    // Failsafe: if Supabase takes more than 8 seconds, show error
+    const loadingTimeout = setTimeout(() => {
+      document.getElementById('loadingScreen').style.display = 'none';
+      document.getElementById('authScreen').style.display = 'flex';
+      setAuthStatus('Connection timed out — check your internet and reload.');
+    }, 8000);
+
     try {
       const { data: { session } } = await _sb.auth.getSession();
+      clearTimeout(loadingTimeout);
 
       // Returning Google user (after OAuth redirect or existing session)
       if (session && !session.user.is_anonymous){
