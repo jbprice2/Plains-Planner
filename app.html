@@ -2840,7 +2840,10 @@
     ui.selectedDay = todayIso();
     render();
     if (!welcomed) showOnboarding();
-    document.getElementById('syncSignInBtn').addEventListener('click', signInWithGoogle);
+    document.getElementById('syncSignInBtn').addEventListener('click', () => {
+      document.getElementById('syncBanner').style.display = 'none';
+      document.getElementById('authScreen').style.display = 'flex';
+    });
     document.getElementById('signOutBtn').addEventListener('click', async () => {
       await _sb.auth.signOut();
       location.reload();
